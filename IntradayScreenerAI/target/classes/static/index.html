@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groww Intraday • AI Screener</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #0b0d10;
+      color: #e8eef7;
+    }
+
+    /* top navigation */
+    .topbar {
+      height: 72px;
+      background: #11151b;
+      border-bottom: 1px solid #202734;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .brand {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff, #a0f0e0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+    }
+
+    .search {
+      width: 320px;
+      padding: 10px 16px;
+      border: 1px solid #2f3848;
+      border-radius: 40px;
+      background: #0b0d10;
+      color: #e7edf7;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .search:focus {
+      outline: none;
+      border-color: #00b386;
+      background: #12161c;
+      box-shadow: 0 0 0 3px rgba(0, 179, 134, 0.2);
+    }
+
+    /* main layout */
+    .page {
+      padding: 28px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .hero-title {
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #f1f5fe;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      color: #96a1b3;
+      margin-bottom: 24px;
+      font-size: 16px;
+      border-left: 3px solid #00b386;
+      padding-left: 14px;
+    }
+
+    /* cards and chips */
+    .stocks-card {
+      background: #11151b;
+      border-radius: 24px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      padding: 24px;
+      margin-bottom: 28px;
+      border: 1px solid #202734;
+    }
+
+    .card {
+      background: #11151b;
+      border-radius: 24px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+      padding: 20px 24px;
+      margin: 24px 0;
+      border: 1px solid #202734;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .chip {
+      padding: 8px 18px;
+      border: 1px solid #2f3848;
+      border-radius: 40px;
+      background: #0b0d10;
+      font-size: 13px;
+      font-weight: 500;
+      color: #c3cee0;
+      cursor: default;
+      transition: 0.1s;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 14px 8px;
+      border-bottom: 1px solid #202734;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      font-weight: 600;
+      color: #9aa5b8;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+
+    .ok {
+      color: #00c28a;
+      font-weight: 600;
+    }
+
+    .loss {
+      color: #ff6b5f;
+      font-weight: 600;
+    }
+
+    .sector {
+      color: #98a3b6;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* modal overlay (groww like auth) */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal {
+      width: min(980px, 95vw);
+      min-height: 520px;
+      background: #fff;
+      border-radius: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      overflow: hidden;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .left {
+      background: linear-gradient(145deg, #0f2e2a, #05201c);
+      color: white;
+      padding: 48px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .left h2 {
+      font-size: 44px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+    }
+
+    .left p {
+      font-size: 32px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    .right {
+      padding: 48px 44px;
+      background: white;
+    }
+
+    .right h3 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #0f172a;
+    }
+
+    .right h4 {
+      font-size: 22px;
+      margin: 16px 0 12px;
+      color: #1e293b;
+    }
+
+    .msg {
+      margin: 12px 0;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+    }
+
+    .msg.ok {
+      background: #e6f9f0;
+      color: #0c6e4a;
+      border-left: 3px solid #00b386;
+    }
+
+    .msg.err {
+      background: #fef2f0;
+      color: #c2412c;
+      border-left: 3px solid #ea4335;
+    }
+
+    .field {
+      margin: 18px 0;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      font-size: 15px;
+      background: #fff;
+      transition: 0.2s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #00b386;
+      box-shadow: 0 0 0 2px rgba(0, 179, 134, 0.2);
+    }
+
+    button {
+      background: #00b386;
+      color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    button.secondary {
+      background: #f1f5f9;
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+    }
+
+    button.secondary:hover {
+      background: #e6edf4;
+    }
+
+    button:hover {
+      background: #009c72;
+      transform: translateY(-1px);
+    }
+
+    .muted {
+      font-size: 12px;
+      color: #6c86a3;
+      margin-top: 6px;
+    }
+
+    .pin-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .pin-row input {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 600;
+      padding: 10px 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .chip-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .chip-check input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    @media (max-width: 800px) {
+      .modal {
+        grid-template-columns: 1fr;
+      }
+      .left {
+        display: none;
+      }
+      .right {
+        padding: 32px 24px;
+      }
+      .hero-title {
+        font-size: 32px;
+      }
+      .topbar {
+        padding: 0 18px;
+      }
+      .page {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { useEffect, useState } = React;
+
+  function App() {
+    // global app state (mimics backend)
+    const [init, setInit] = useState({
+      authenticated: false,
+      otpSent: false,
+      selectedBroker: '',
+      brokerConnected: false,
+      growwPinPending: false,
+      stocks: [],
+      brokers: ['GROWW', 'ZERODHA', 'ANGEL'],
+      disclaimer: 'Top intraday picks based on volume & momentum • Data refreshes every 5 min'
+    });
+
+    const [msg, setMsg] = useState('');
+    const [error, setError] = useState('');
+    const [result, setResult] = useState(null);
+    const [growwUrl, setGrowwUrl] = useState('');
+
+    // Live data from /api/groww/intraday-data
+    const [growwRows, setGrowwRows] = useState([]);
+    const [growwSource, setGrowwSource] = useState('GROWW_INTRADAY');
+
+    // auth fields
+    const [authType, setAuthType] = useState('GOOGLE');
+    const [identifier, setIdentifier] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpHint, setOtpHint] = useState('');
+    const [otpDelivery, setOtpDelivery] = useState('');
+    const [selectedBroker, setSelectedBroker] = useState('GROWW');
+    const [growwUser, setGrowwUser] = useState('');
+    const [growwPassword, setGrowwPassword] = useState('');
+    const [growwPin, setGrowwPin] = useState('');
+
+    // investment
+    const [selectedStocks, setSelectedStocks] = useState([]);
+    const [investmentPerStock, setInvestmentPerStock] = useState('100');
+    const [paymentApp, setPaymentApp] = useState('GPAY');
+
+    const isAuthModalVisible = !init.authenticated || !init.selectedBroker || !init.brokerConnected;
+
+    // Helper: format INR
+    const formatNumber = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+
+    // Load initial app metadata (stocks fallback)
+    const load = async () => {
+      try {
+        const res = await fetch('/api/app-init');
+        const data = await res.json();
+        setInit(prev => ({ ...prev, ...data, stocks: data.stocks || prev.stocks }));
+      } catch (err) {
+        // fallback mock if backend not ready
+        setInit(prev => ({
+          ...prev,
+          stocks: [
+            { symbol: 'RELIANCE', sector: 'Energy', price: 2874 },
+            { symbol: 'HDFCBANK', sector: 'Financial', price: 1682 },
+            { symbol: 'TATAMOTORS', sector: 'Auto', price: 943 },
+            { symbol: 'INFY', sector: 'IT', price: 1567 },
+            { symbol: 'ICICIBANK', sector: 'Financial', price: 1123 }
+          ]
+        }));
+      }
+    };
+
+    // fetch live intraday data from groww endpoint (as per diff)
+    const fetchIntradayData = async () => {
+      if (!init.brokerConnected) return;
+      try {
+        const res = await fetch('/api/groww/intraday-data');
+        const data = await res.json();
+        if (Array.isArray(data.rows) && data.rows.length > 0) {
+          setGrowwRows(data.rows);
+          setGrowwSource(data.source || 'GROWW_INTRADAY');
+          setError('');
+        } else {
+          setGrowwRows([]);
+          setGrowwSource('GROWW_INTRADAY');
+          setError(data.error || 'Unable to load live Groww rows');
+        }
+      } catch (err) {
+        setGrowwRows([]);
+        setGrowwSource('GROWW_INTRADAY');
+        setError('Unable to load live Groww rows');
+      }
+    };
+
+    useEffect(() => { load(); }, []);
+    useEffect(() => {
+      if (init.brokerConnected) {
+        fetchIntradayData();
+      }
+    }, [init.brokerConnected]);
+
+    // API simulation (full frontend mocks for smooth integration, but respects backend contract)
+    const post = async (url, body) => {
+      setError(''); setMsg('');
+      await new Promise(r => setTimeout(r, 400));
+
+      // AUTH send OTP
+      if (url === '/api/auth/send-otp') {
+        if (!identifier) return { error: 'Email/Mobile required' };
+        setInit(prev => ({ ...prev, otpSent: true }));
+        return { message: `OTP sent to ${identifier}`, delivery: `via ${authType === 'GOOGLE' ? 'email' : 'SMS'}`, demoOtp: '123456' };
+      }
+      // verify OTP
+      if (url === '/api/auth/verify-otp') {
+        if (otp !== '123456') return { error: 'Invalid OTP, use 123456' };
+        setInit(prev => ({ ...prev, authenticated: true, otpSent: false }));
+        return { message: 'Authentication successful!' };
+      }
+      // broker select
+      if (url === '/api/broker/select') {
+        if (body.broker === 'GROWW') {
+          setGrowwUrl('https://groww.in/login?intraday=true');
+          setInit(prev => ({ ...prev, selectedBroker: body.broker }));
+          return { message: `Selected ${body.broker}, please continue login`, authUrl: 'https://groww.in/login' };
+        }
+        setInit(prev => ({ ...prev, selectedBroker: body.broker, brokerConnected: true }));
+        return { message: `${body.broker} connected (demo mode)` };
+      }
+      // verify groww credentials (email/password)
+      if (url === '/api/broker/groww/verify') {
+        if (!growwUser || !growwPassword) return { error: 'Email and password required' };
+        setInit(prev => ({ ...prev, growwPinPending: true }));
+        return { message: 'Credentials accepted. Enter your 4-digit Groww PIN.' };
+      }
+      // verify PIN
+      if (url === '/api/broker/groww/pin') {
+        if (!body.pin || body.pin.length !== 4) return { error: 'PIN must be 4 digits' };
+        if (body.pin !== '1111') return { error: 'Wrong PIN, demo PIN is 1111' };
+        setInit(prev => ({ ...prev, brokerConnected: true, growwPinPending: false }));
+        return { message: 'Groww connected successfully! You can now invest.' };
+      }
+      // invest + automation
+      if (url === '/api/invest/execute') {
+        if (!body.selectedStocks || body.selectedStocks.length === 0) return { error: 'Select at least 1 stock' };
+        const investment = Number(body.investmentPerStock) || 100;
+        const stockDecisions = body.selectedStocks.map((sym, idx) => {
+          const basePrice = 150 + idx * 35;
+          const current = basePrice * (1 + (Math.random() * 0.09 - 0.03));
+          const profitPct = ((current - basePrice) / basePrice * 100).toFixed(2);
+          const action = parseFloat(profitPct) > 2.5 ? 'HOLD & TRAIL SL' : (parseFloat(profitPct) < -1.5 ? 'EXIT' : 'WATCH');
+          return {
+            symbol: sym,
+            initialInvestment: `₹${investment}`,
+            currentValue: `₹${current.toFixed(2)}`,
+            profitPercentage: `${profitPct}%`,
+            withdrawalAmount: parseFloat(profitPct) > 0 ? `₹${(investment * (parseFloat(profitPct)/100)).toFixed(2)}` : '₹0',
+            action
+          };
+        });
+        return {
+          paymentMessage: `✅ Payment via ${body.paymentApp} processed. Automation triggered.`,
+          result: { stockDecisions, timestamp: new Date().toLocaleString() }
+        };
+      }
+      return { error: 'endpoint not mocked' };
+    };
+
+    const sendOtp = async () => {
+      const data = await post('/api/auth/send-otp', { authType, identifier });
+      if (data) {
+        if (data.error) setError(data.error);
+        else {
+          setMsg(data.message);
+          setOtpDelivery(data.delivery || '');
+          setOtpHint(data.demoOtp ? `Demo OTP: ${data.demoOtp}` : '');
+        }
+      }
+    };
+
+    const verifyOtp = async () => {
+      const data = await post('/api/auth/verify-otp', { identifier, otp });
+      if (data) {
+        if (data.error) setError(data.error);
+        else {
+          setMsg(data.message);
+          setOtpHint('');
+          setOtpDelivery('');
+        }
+      }
+    };
+
+    const chooseBroker = async () => {
+      const data = await post('/api/broker/select', { broker: selectedBroker });
+      if (data && !data.error) {
+        setMsg(data.message);
+        if (data.authUrl) setGrowwUrl(data.authUrl);
+      }
+    };
+
+    const verifyGrowwCredentials = async () => {
+      const data = await post('/api/broker/groww/verify', { username: growwUser, password: growwPassword });
+      if (data && !data.error) setMsg(data.message);
+      else if (data?.error) setError(data.error);
+    };
+
+    const verifyGrowwPin = async () => {
+      const data = await post('/api/broker/groww/pin', { pin: growwPin });
+      if (data && !data.error) setMsg(data.message);
+      else if (data?.error) setError(data.error);
+    };
+
+    const invest = async () => {
+      if (selectedStocks.length === 0) {
+        setError('Please select at least one stock to invest');
+        return;
+      }
+      const data = await post('/api/invest/execute', {
+        selectedStocks,
+        investmentPerStock: Number(investmentPerStock),
+        paymentApp
+      });
+      if (data) {
+        if (data.error) setError(data.error);
+        else {
+          setMsg(data.paymentMessage);
+          setResult(data.result);
+        }
+      }
+    };
+
+    const toggleStock = (symbol) => {
+      if (selectedStocks.includes(symbol)) {
+        setSelectedStocks(selectedStocks.filter(s => s !== symbol));
+      } else if (selectedStocks.length < 3) {
+        setSelectedStocks([...selectedStocks, symbol]);
+      } else {
+        setError('Maximum 3 stocks allowed per automation');
+        setTimeout(() => setError(''), 2000);
+      }
+    };
+
+    // Determine which data to show in screener table: live Groww rows or fallback
+    const displayRows = growwRows.length > 0 ? growwRows : [];
+
+    return (
+      <>
+        {/* Topbar - groww dark style */}
+        <div className="topbar">
+          <div className="brand">Groww Intraday</div>
+          <input className="search" placeholder="Search stocks, MF, research..." />
+        </div>
+
+        <div className="page">
+          <h1 className="hero-title">Intraday Stocks Screener</h1>
+          <p className="sub">Groww-like flow: Email/Mobile OTP → Select broker → Groww Email/Password → Groww PIN.</p>
+
+          {/* Screener table card with live/fetched data */}
+          <div className="stocks-card">
+            <div className="toolbar">
+              <span className="chip">🔥 Volume surge &gt;1%</span>
+              <span className="chip">📈 52W Momentum</span>
+              <span className="chip">⚡ RSI breakout</span>
+              <span className="chip">📊 MACD bullish</span>
+            </div>
+            <table>
+              <thead>
+                <tr><th>Company</th><th>Price (₹)</th><th>1D change</th><th>1W avg vol diff</th><th>52W performance</th></tr>
+              </thead>
+              <tbody>
+                {displayRows.length > 0 ? (
+                  displayRows.map((row) => {
+                    const changePct = row.dayChangePercentage || 0;
+                    const volDiff = row.avgVolDiffWeek || 0;
+                    const perf52 = row.performance52Week || 0;
+                    return (
+                      <tr key={row.symbol}>
+                        <td>
+                          <div>{row.companyName || row.symbol}</div>
+                          <div className="sector">{row.symbol}</div>
+                        </td>
+                        <td>₹{formatNumber(row.marketPrice)}</td>
+                        <td className={Number(changePct) >= 0 ? 'ok' : 'loss'}>
+                          {Number(changePct) >= 0 ? '+' : ''}{Number(changePct).toFixed(2)}%
+                        </td>
+                        <td className={Number(volDiff) >= 0 ? 'ok' : 'loss'}>
+                          {Number(volDiff) >= 0 ? '+' : ''}{Number(volDiff).toFixed(2)}%
+                        </td>
+                        <td className={Number(perf52) >= 0 ? 'ok' : 'loss'}>
+                          {Number(perf52) >= 0 ? '+' : ''}{Number(perf52).toFixed(2)}%
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="loss" style={{ textAlign: 'center', padding: '32px' }}>
+                      ⚠️ Live Groww rows not available. Please complete login and connect broker.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            {growwRows.length > 0 && <p className="muted" style={{ marginTop: '8px' }}>Source: {growwSource}</p>}
+            <p className="muted" style={{ marginTop: '10px' }}>{init.disclaimer}</p>
+          </div>
+        </div>
+
+        {/* MODAL AUTH (Groww like experience) */}
+        {isAuthModalVisible && (
+          <div className="overlay">
+            <div className="modal">
+              <div className="left">
+                <h2>Simple,<br />Free Investing.</h2>
+                <p>Mutual Funds<br />Stocks | ETF</p>
+              </div>
+              <div className="right">
+                <h3>{!init.authenticated ? 'Welcome to Groww' : (init.growwPinPending ? 'Hi, Investor' : 'Welcome Back')}</h3>
+                {msg && <div className="msg ok">{msg}</div>}
+                {error && <div className="msg err">{error}</div>}
+
+                {/* STEP 1: AUTH OTP */}
+                {!init.authenticated && (
+                  <>
+                    <div className="field">
+                      <label>Continue with</label>
+                      <select value={authType} onChange={e => setAuthType(e.target.value)}>
+                        <option value="GOOGLE">Google (Email OTP)</option>
+                        <option value="PHONE">Mobile Number OTP</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>{authType === 'GOOGLE' ? 'Your Email Address' : 'Your Mobile Number'}</label>
+                      <input
+                        placeholder={authType === 'GOOGLE' ? 'name@gmail.com' : '+91 98765 43210'}
+                        value={identifier}
+                        onChange={e => setIdentifier(e.target.value)}
+                      />
+                    </div>
+                    <div className="actions">
+                      <button onClick={sendOtp}>Continue</button>
+                      <button className="secondary" onClick={() => { setOtp(''); setIdentifier(''); }}>Reset</button>
+                    </div>
+                    {otpDelivery && <p className="muted">{otpDelivery}</p>}
+                    {otpHint && <p className="muted">{otpHint}</p>}
+                    {init.otpSent && (
+                      <div className="field">
+                        <label>Enter OTP</label>
+                        <input placeholder="6-digit OTP" value={otp} onChange={e => setOtp(e.target.value)} />
+                        <button style={{ marginTop: '10px' }} onClick={verifyOtp}>Verify OTP</button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* STEP 2: broker selection */}
+                {init.authenticated && !init.selectedBroker && (
+                  <>
+                    <h4>Select which app to login</h4>
+                    <div className="field">
+                      <label>Broker Application</label>
+                      <select value={selectedBroker} onChange={e => setSelectedBroker(e.target.value)}>
+                        {init.brokers.map(b => <option key={b} value={b}>{b}</option>)}
+                      </select>
+                    </div>
+                    <button onClick={chooseBroker}>Continue with Groww</button>
+                  </>
+                )}
+
+                {/* STEP 3: Groww credentials + PIN flow (full integration from diff) */}
+                {init.authenticated && init.selectedBroker === 'GROWW' && !init.brokerConnected && (
+                  <>
+                    <h4>Groww Login</h4>
+                    {growwUrl && <p className="muted">🔗 Open URL: <a href={growwUrl} target="_blank" rel="noreferrer">{growwUrl}</a> (simulate)</p>}
+                    <div className="field">
+                      <label>Your Email Address</label>
+                      <input placeholder="you@example.com" value={growwUser} onChange={e => setGrowwUser(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Enter Password</label>
+                      <input type="password" placeholder="Groww password" value={growwPassword} onChange={e => setGrowwPassword(e.target.value)} />
+                    </div>
+                    <button onClick={verifyGrowwCredentials}>Submit Credentials</button>
+
+                    {init.growwPinPending && (
+                      <div className="field">
+                        <label>Please enter Groww PIN (4 digits)</label>
+                        <div className="pin-row">
+                          {[0, 1, 2, 3].map(i => (
+                            <input
+                              key={i}
+                              maxLength="1"
+                              value={growwPin[i] || ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                const newPinArr = (growwPin + val).slice(0, 4);
+                                setGrowwPin(newPinArr);
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <button style={{ marginTop: '16px' }} onClick={verifyGrowwPin}>Verify PIN</button>
+                        <p className="muted">Demo PIN: 1111</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* after broker connection -> investment panel */}
+        {init.brokerConnected && (
+          <div className="page" style={{ paddingTop: 0 }}>
+            <div className="stocks-card">
+              <h3 style={{ marginBottom: '16px' }}>⚡ Invest + Run Automation</h3>
+              <div className="toolbar">
+                {(growwRows.length > 0 ? growwRows : []).map(s => (
+                  <label key={s.symbol} className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedStocks.includes(s.symbol)}
+                      onChange={() => toggleStock(s.symbol)}
+                      style={{ width: '18px', margin: 0 }}
+                    />
+                    {s.symbol}
+                  </label>
+                ))}
+              </div>
+              {growwRows.length === 0 && <p className="loss">No live Groww stocks loaded for investment selection.</p>}
+              <div className="actions" style={{ marginTop: '16px', flexWrap: 'wrap' }}>
+                <input
+                  type="number"
+                  min="10"
+                  value={investmentPerStock}
+                  onChange={e => setInvestmentPerStock(e.target.value)}
+                  style={{ maxWidth: '180px' }}
+                />
+                <select value={paymentApp} onChange={e => setPaymentApp(e.target.value)} style={{ maxWidth: '160px' }}>
+                  <option value="GPAY">GPay</option><option value="PHONEPE">PhonePe</option>
+                  <option value="PAYTM">Paytm</option><option value="UPI">UPI</option><option value="CARD">Card</option>
+                </select>
+                <button onClick={invest} style={{ padding: '12px 28px', width: 'auto' }}>🚀 Invest Now</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Results table */}
+        {result && (
+          <div className="page" style={{ paddingTop: 0 }}>
+            <div className="card">
+              <h3>📊 Automation Output</h3>
+              <table style={{ width: '100%', marginTop: '12px' }}>
+                <thead>
+                  <tr><th>Stock</th><th>Invested</th><th>Current Value</th><th>Profit %</th><th>Withdrawable</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {result.stockDecisions.map(d => (
+                    <tr key={d.symbol}>
+                      <td style={{ fontWeight: 600 }}>{d.symbol}</td>
+                      <td>{d.initialInvestment}</td>
+                      <td>{d.currentValue}</td>
+                      <td className={parseFloat(d.profitPercentage) >= 0 ? 'ok' : 'loss'}>{d.profitPercentage}</td>
+                      <td>{d.withdrawalAmount}</td>
+                      <td><span className="chip" style={{ background: '#1e293b', color: '#ddd' }}>{d.action}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="muted" style={{ marginTop: '12px' }}>✅ Auto square-off simulation • real-time P&L analysis</p>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intraday Screener Automation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background: #f5f7fb; }
+        .card { background: white; padding: 1.25rem; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 1rem; }
+        input, select, button { width: 100%; padding: 0.6rem; margin-top: 0.4rem; margin-bottom: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+        th { background: #1f3b6e; color: white; }
+        .error { color: #b00020; font-weight: bold; }
+        .ok { color: #0a7d32; font-weight: bold; }
+        .warn { color: #8a5200; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .stocks { border: 1px solid #ddd; border-radius: 8px; padding: 0.6rem; max-height: 180px; overflow: auto; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Intraday Screener Automation</h2>
+    <p class="warn" th:text="${disclaimer}"></p>
+    <p>Flow: 1) Login by email/mobile OTP 2) Select Groww app 3) Login to Groww intraday with email/password + PIN 4) Select max 3 stocks and invest.</p>
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+    <p class="ok" th:if="${message}" th:text="${message}"></p>
+    <p class="ok" th:if="${paymentMessage}" th:text="${paymentMessage}"></p>
+</div>
+
+<div class="card" th:if="${!authenticated}">
+    <h3>Step 1: Login</h3>
+    <form method="post" action="/auth/login">
+        <label>Authentication Method</label>
+        <select name="authType" required>
+            <option value="GOOGLE">Google Authentication</option>
+            <option value="PHONE">Phone Number Authentication</option>
+        </select>
+        <label>Email or Phone Number</label>
+        <input type="text" name="identifier" placeholder="name@gmail.com or +91xxxxxxxxxx" required>
+        <button type="submit">Login</button>
+    </form>
+</div>
+
+<div class="card" th:if="${authenticated and !growConnected}">
+    <h3>Step 2: Connect Groww Application</h3>
+    <form method="post" action="/auth/grow">
+        <label>Groww Email ID</label>
+        <input type="text" name="growUsername" required>
+        <label>Groww Password</label>
+        <input type="password" name="growPassword" required>
+        <label>Groww 4-digit PIN</label>
+        <input type="password" name="growPin" maxlength="4" required>
+        <button type="submit">Connect Groww</button>
+    </form>
+</div>
+
+<div class="card" th:if="${growConnected}">
+    <h3>Step 3: Select Intraday Screener Stocks (Max 3) + Payment</h3>
+    <form method="post" action="/invest/execute">
+        <label>All Intraday Screener Stocks</label>
+        <div class="stocks">
+            <div th:each="stock : ${stockUniverse}">
+                <label>
+                    <input type="checkbox" name="selectedStocks" th:value="${stock.symbol}" style="width:auto; margin-right:8px;">
+                    <span th:text="${stock.symbol + ' (' + stock.sector + ')'}"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label>Investment Per Stock (INR)</label>
+                <input type="number" min="10" step="0.01" name="investmentPerStock" placeholder="100" required>
+            </div>
+            <div>
+                <label>Payment Application</label>
+                <select name="paymentApp" required>
+                    <option value="GPAY">GPay</option>
+                    <option value="PHONEPE">PhonePe</option>
+                    <option value="PAYTM">Paytm</option>
+                    <option value="UPI">Any UPI App</option>
+                    <option value="CARD">Debit/Credit Card</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit">Invest + Run Automation</button>
+    </form>
+</div>
+
+<div class="card" th:if="${result}">
+    <h3>Automation Decision Output</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Stock</th><th>Sector</th><th>Invested</th><th>Current (ProfitAmount)</th><th>Profit %</th><th>Withdraw</th><th>Remain</th><th>Action</th><th>Reason</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="d : ${result.stockDecisions}">
+            <td th:text="${d.symbol}"></td>
+            <td th:text="${d.sector}"></td>
+            <td th:text="${d.initialInvestment}"></td>
+            <td th:text="${d.currentValue}"></td>
+            <td th:text="${d.profitPercentage}"></td>
+            <td th:text="${d.withdrawalAmount}"></td>
+            <td th:text="${d.remainingCapital}"></td>
+            <td th:text="${d.action}"></td>
+            <td th:text="${d.reason}"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

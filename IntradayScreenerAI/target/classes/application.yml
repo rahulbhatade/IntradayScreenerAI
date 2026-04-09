@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: intraday-screener-ai
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: alerts@example.com
+    password: change-me
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: intraday-screener-ai
+
+app:
+  backup:
+    strategy: "Daily pg_dump to encrypted object storage + weekly restore drill"
+  brokers:
+    enabled: [ZERODHA, UPSTOX]
+
+server:
+  port: 8080
